@@ -55,8 +55,6 @@ services:
     ports:
     - "2223:2223/udp"
     - "10000-10060:10000-10060/udp"
-    #volumes:
-    #  - ./mel_rtpengine/rtpengine.conf:/opt/rtpengine/rtpengine.conf
     environment:
       RTPENGINE_PUBLIC_IP: 202.181.148.92
       RTPENGINE_PORT_MIN: 10000
