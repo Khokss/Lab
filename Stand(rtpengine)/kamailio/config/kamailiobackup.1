@@ -1,0 +1,137 @@
+?#!define DBURL "postgres://kamailio:asdasd@172.28.0.30:5432/kamailio"
+
+loadmodule "pv.so"
+loadmodule "ctl.so"
+loadmodule "jsonrpcs.so"
+loadmodule "textops.so"
+loadmodule "tm.so"
+loadmodule "sl.so"
+loadmodule "usrloc.so"
+loadmodule "registrar.so"
+loadmodule "auth.so"
+loadmodule "db_postgres.so"  
+loadmodule "auth_db.so"
+loadmodule "sctp.so"
+loadmodule "rr.so"
+loadmodule "maxfwd.so"
+loadmodule "uac.so"
+loadmodule "siputils.so"
+loadmodule "nathelper.so"
+loadmodule "rtpproxy.so"
+loadmodule "xlog.so"
+
+debug=2
+
+listen=172.28.0.40:5050 advertise 202.181.148.92:5050
+listen=0.0.0.0:8021
+
+#!define tswitch 1
+#!define fswitch 2
+
+modparam("usrloc", "db_url", DBURL);
+modparam("usrloc", "db_mode", 1);  
+modparam("usrloc", "use_domain", 1);  
+modparam("auth_db", "db_url", DBURL); 
+
+request_route {
+        route(REQINIT);
+ 
+        if (is_method("CANCEL")) {
+                if (t_check_trans()) {
+                        route(RELAY);
+                }
+                exit;
+        }
+ 
+        if (is_method("INVITE") || is_method("REGISTER")) {
+                route(NAT);
+        }
+ 
+        if (is_method("REGISTER")) {
+                route(AUTH);
+        }
+ 
+        route(DIALOG);
+}
+ 
+route[REQINIT] {
+        force_rport;
+}
+ 
+route[AUTH] {
+                if (!auth_check("$fd", "subscriber", "1")) {
+                        auth_challenge("$fd", "1");
+                        exit;
+                }
+                if (is_method("REGISTER")) {
+                        save("location");
+                        exit;
+                } else {
+                        return;
+                }
+}
+ 
+route[NAT] {
+        if (nat_uac_test("19")) {
+                if (is_method("REGISTER")) {
+                        set_contact_alias();
+                } else {
+                        if(is_first_hop()) {
+                                set_contact_alias();
+                        }
+                }
+        }
+        return;
+}
+ 
+route[DIALOG] {
+    # 1) Все INVITE
+    if (is_method("INVITE")) {
+        # 1.1) Если пришёл от FreeSWITCH (внутреннего или внешнего IP) — ставим fswitch
+        if ($si == "172.28.0.20" || $si == "202.181.148.92") {
+            setflag(fswitch);
+        }
+        # 1.2) Иначе — ставим tswitch и проверяем регистрацию
+        else {
+            setflag(tswitch);
+            route(AUTH);
+        }
+        # 1.3) Общие шаги для любой INVITE
+        handle_ruri_alias();
+        record_route();
+        route(RELAY);
+        exit;
+    }
+
+    # 2) In-dialog (BYE, re-INVITE и т.п.)
+    if (has_totag() && loose_route()) {
+        handle_ruri_alias();
+        route(RELAY);
+        exit;
+    }
+
+    # 3) ACK в транзакции
+    if (is_method("ACK") && t_check_trans()) {
+        route(RELAY);
+        exit;
+    }
+
+    # 4) Всё остальное — 404
+    sl_send_reply("404", "Not Found");
+    exit;
+}
+ 
+route[RELAY] {
+        t_on_reply("REPLY");
+        if (isflagset(fswitch)) {
+                t_relay();
+        }
+        if (isflagset(tswitch)) {
+                rewritehostport("172.28.0.20:8021");
+                t_relay();
+        }
+}
+ 
+onreply_route[REPLY] {
+        route(NAT);
+}
