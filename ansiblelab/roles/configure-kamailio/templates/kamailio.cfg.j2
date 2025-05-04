@@ -1,0 +1,160 @@
+#!define DBURL "postgres://{{ kamailio_db_user }}:{{ kamailio_db_password }}@{{ kamailio_db_host }}:{{ kamailio_db_port }}/{{ kamailio_db_name }}"
+
+loadmodule "pv.so"
+loadmodule "ctl.so"
+loadmodule "jsonrpcs.so"
+loadmodule "textops.so"
+loadmodule "tm.so"
+loadmodule "sl.so"
+loadmodule "usrloc.so"
+loadmodule "registrar.so"
+loadmodule "auth.so"
+loadmodule "db_postgres.so"
+loadmodule "auth_db.so"
+loadmodule "sctp.so"
+loadmodule "rr.so"
+loadmodule "maxfwd.so"
+loadmodule "uac.so"
+loadmodule "siputils.so"
+loadmodule "nathelper.so"
+loadmodule "rtpengine.so"
+loadmodule "xlog.so"
+
+debug=2
+
+listen={{ kamailio_ip }}:{{ kamailio_port }} advertise {{ ansible_default_ipv4.address }}:{{ kamailio_port }}
+
+modparam("usrloc", "db_url", DBURL)
+modparam("usrloc", "db_mode", 1)
+modparam("usrloc", "use_domain", 1)
+modparam("auth_db", "db_url", DBURL)
+modparam("rtpengine", "rtpengine_sock", "udp:{{ rtpengine_ip }}:{{ rtpengine_port_bind }}")
+
+request_route {
+    route(REQINIT);
+
+    if (is_method("CANCEL")) {
+        if (t_check_trans()) {
+            route(RELAY);
+        }
+        exit;
+    }
+
+    if (is_method("INVITE") || is_method("REGISTER")) {
+        route(NAT);
+    }
+
+    if (is_method("REGISTER")) {
+        route(AUTH);
+    }
+
+    route(DIALOG);
+}
+
+route[REQINIT] {
+    force_rport();
+}
+
+route[AUTH] {
+    if (!auth_check("$fd", "subscriber", "1")) {
+        auth_challenge("$fd", "1");
+        exit;
+    }
+    if (is_method("REGISTER")) {
+        save("location");
+        exit;
+    }
+}
+
+route[NAT] {
+    # Обрабатываем и REGISTER, и первый хоп в одном условии
+    if (nat_uac_test("19") && (is_method("REGISTER") || is_first_hop())) {
+        set_contact_alias();
+    }
+}
+
+route[DIALOG] {
+    if (is_method("INVITE")) {
+        handle_ruri_alias();
+        record_route();
+
+        if ($rU == "1000" || $rU == "5000") {
+            xlog("L_INFO", "Routing call to FreeSWITCH for $rU\n");
+            rewritehostport("{{ freeswitch_ip }}:{{ freeswitch_sip_port }}");
+            if (has_body("application/sdp")) {
+                rtpengine_manage(
+                    "replace-origin "
+                    "replace-session-connection "
+                    "direction=bridge "
+                    "ICE=remove "
+                    "RTP/AVP "
+                );
+            }
+            route(RELAY);
+            exit;
+        }
+
+        if ($rU =~ "^1[0-9][0-9]$") {
+            if (!lookup("location")) {
+                xlog("L_ERR", "Internal user $rU not registered\n");
+                send_reply("404", "Not Found");
+                exit;
+            }
+            xlog("L_INFO", "Internal call $fu -> $rU via Kamailio+RTPengine\n");
+            rtpengine_manage(
+                "replace-origin "
+                "replace-session-connection "
+                "direction=bridge "
+                "ICE=remove "
+                "RTP/AVP "
+                "advertised-address={{ ansible_default_ipv4.address }}"
+            );
+            route(RELAY);
+            exit;
+        }
+
+        xlog("L_ERR", "Unknown call target: $rU from $fu\n");
+        send_reply("404", "Not Found");
+        exit;
+    }
+
+    if (has_totag() && loose_route()) {
+        handle_ruri_alias();
+        if (has_body("application/sdp")) {
+            rtpengine_manage(
+                "replace-origin "
+                "replace-session-connection "
+                "direction=bridge "
+                "ICE=remove "
+                "RTP/AVP "
+                "advertised-address={{ ansible_default_ipv4.address }}"
+            );
+        }
+        route(RELAY);
+        exit;
+    }
+
+    if (is_method("ACK") && t_check_trans()) {
+        route(RELAY);
+        exit;
+    }
+}
+
+route[RELAY] {
+    t_on_reply("REPLY");
+    t_relay();
+}
+
+onreply_route[REPLY] {
+    if (has_body("application/sdp")) {
+        rtpengine_manage(
+            "replace-origin "
+            "replace-session-connection "
+            "direction=bridge "
+            "ICE=remove "
+            "RTP/AVP "
+            "advertised-address={{ ansible_default_ipv4.address }}"
+        );
+    }
+    route(NAT);
+}

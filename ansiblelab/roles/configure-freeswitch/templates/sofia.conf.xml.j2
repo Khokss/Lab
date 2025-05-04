@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<configuration name="sofia.conf">
+  <global_settings>
+    <param name="ext-rtp-ip" value="auto-nat:{{ ansible_default_ipv4.address }}"/>
+  </global_settings>
+  <profiles>
+    <X-PRE-PROCESS cmd="include" data="../sip_profiles/*.xml"/>
+  </profiles>
+</configuration>

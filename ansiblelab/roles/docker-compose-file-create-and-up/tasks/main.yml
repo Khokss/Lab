@@ -1,0 +1,15 @@
+---
+- name: Render docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ project_remote_path }}/{{ compose_subpath }}/docker-compose.yml"
+
+- name: Pull images defined in compose
+  shell: docker-compose pull
+  args:
+    chdir: "{{ project_remote_path }}/{{ compose_subpath }}"
+
+- name: Start containers with docker-compose
+  shell: docker-compose up -d
+  args:
+    chdir: "{{ project_remote_path }}/{{ compose_subpath }}"

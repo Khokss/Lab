@@ -1,0 +1,11 @@
+<configuration name="acl.conf.xml">
+  <network-lists>
+    <list name="local-network" default="allow">
+      <node type="allow" cidr="{{ fs_local_network_cidr }}"/>
+      <node type="deny"  cidr="{{ fs_local_deny_cidr }}"/>
+    </list>
+    <list name="nat-addresses" default="deny">
+      <node type="allow" cidr="{{ fs_nat_allow_cidr }}"/>
+    </list>
+  </network-lists>
+</configuration>

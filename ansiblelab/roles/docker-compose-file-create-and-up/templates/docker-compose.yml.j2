@@ -1,0 +1,74 @@
+version: '3.9'
+
+services:
+  freeswitch:
+    image: {{ freeswitch_image }}
+    container_name: freeswitch
+    restart: unless-stopped
+    volumes:
+      - "{{ project_remote_path }}/{{ compose_subpath }}/freeswitch/conf:/usr/local/freeswitch/conf"
+    ports:
+      - "{{ external_fs_port }}:8021/tcp"
+      - "{{ freeswitch_rtp_start_port }}-{{ freeswitch_rtp_end_port }}:16384-16590/udp"
+    networks:
+      sip_net:
+        ipv4_address: {{ freeswitch_local_ip_v4 }}
+
+  postgres:
+    image: {{ postgres_image }}
+    container_name: {{ postgres_container_name }}
+    restart: unless-stopped
+    volumes:
+      - "{{ postgres_data_host_dir }}:{{ postgres_data_container_dir }}"
+    environment:
+      POSTGRES_DB: {{ postgres_db_name }}
+      POSTGRES_USER: {{ postgres_db_user }}
+      POSTGRES_PASSWORD: {{ postgres_db_password }}
+    ports:
+      - "{{ postgres_port }}:5432"
+    networks:
+      sip_net:
+        ipv4_address: {{ postgres_ip }}
+
+  kamailio:
+    image: {{ kamailio_image }}
+    container_name: kamailio
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    ports:
+      - "{{ kamailio_port }}:5050/udp"
+      - "{{ kamailio_port }}:5050/tcp"
+    volumes:
+      - "{{ project_remote_path }}/{{ compose_subpath }}/kamailio/config:/etc/kamailio"
+      - "{{ project_remote_path }}/{{ compose_subpath }}/kamailio/logs:/var/log/kamailio"
+      - "{{ project_remote_path }}/{{ compose_subpath }}/kamailio/postgres:/usr/share/kamailio/postgres"
+    networks:
+      sip_net:
+        ipv4_address: {{ kamailio_ip }}
+
+  rtpengine:
+    image: {{ rtpengine_image }}
+    container_name: rtpengine
+    restart: unless-stopped
+    build:
+      context: "{{ project_remote_path }}/{{ compose_subpath }}/rtpengine"
+    ports:
+      - "{{ rtpengine_port_bind }}:{{ rtpengine_port_bind }}/udp"
+      - "{{ rtpengine_port_min }}-{{ rtpengine_port_max }}:{{ rtpengine_port_min }}-{{ rtpengine_port_max }}/udp"
+    environment:
+      RTPENGINE_PUBLIC_IP: "{{ rtpengine_public_ip }}"
+      RTPENGINE_PORT_MIN: {{ rtpengine_port_min }}
+      RTPENGINE_PORT_MAX: {{ rtpengine_port_max }}
+      RTPENGINE_BIND_NG_PORT: {{ rtpengine_port_bind }}
+      port-min: {{ rtpengine_internal_min }}
+      port-max: {{ rtpengine_internal_max }}
+    networks:
+      sip_net:
+        ipv4_address: {{ rtpengine_ip }}
+
+networks:
+  sip_net:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

@@ -1,0 +1,4 @@
+- name: Add apt repositories
+  apt_repository:
+    repo: "ppa:deadsnakes/ppa"
+    update_cache: yes

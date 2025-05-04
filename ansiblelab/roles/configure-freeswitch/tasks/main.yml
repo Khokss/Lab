@@ -1,0 +1,52 @@
+# roles/configure-freeswitch/tasks/main.yml
+---
+- name: Ensure FreeSWITCH conf directory exists
+  file:
+    path: "{{ project_remote_path }}/{{ compose_subpath }}/freeswitch/conf"
+    state: directory
+    mode: '0755'
+
+- name: Ensure sip_profiles directory exists
+  file:
+    path: "{{ project_remote_path }}/{{ compose_subpath }}/freeswitch/conf/sip_profiles"
+    state: directory
+    mode: '0755'
+
+- name: Ensure autoload_configs directory exists
+  file:
+    path: "{{ project_remote_path }}/{{ compose_subpath }}/freeswitch/conf/autoload_configs"
+    state: directory
+    mode: '0755'
+
+- name: Copy entire FreeSWITCH conf directory from control → remote
+  synchronize:
+    src: "{{ project_local_path }}/{{ compose_subpath }}/freeswitch/conf/"
+    dest: "{{ project_remote_path }}/{{ compose_subpath }}/freeswitch/conf/"
+    archive: yes
+    delete: no
+
+- name: Render vars.xml
+  template:
+    src: vars.xml.j2
+    dest: "{{ project_remote_path }}/{{ compose_subpath }}/freeswitch/conf/vars.xml"
+
+
+- name: Render external.xml
+  template:
+    src: external.xml.j2
+    dest: "{{ project_remote_path }}/{{ compose_subpath }}/freeswitch/conf/sip_profiles/external.xml"
+
+- name: Render acl.conf.xml
+  template:
+    src: acl.conf.xml.j2
+    dest: "{{ project_remote_path }}/{{ compose_subpath }}/freeswitch/conf/autoload_configs/acl.conf.xml"
+
+- name: Render sofia.conf.xml
+  template:
+    src: sofia.conf.xml.j2
+    dest: "{{ project_remote_path }}/{{ compose_subpath }}/freeswitch/conf/autoload_configs/sofia.conf.xml"
+
+- name: Render switch.conf.xml
+  template:
+    src: switch.conf.xml.j2
+    dest: "{{ project_remote_path }}/{{ compose_subpath }}/freeswitch/conf/autoload_configs/switch.conf.xml"

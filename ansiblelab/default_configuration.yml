@@ -1,0 +1,11 @@
+- name: Default configuration host
+  hosts: remote
+  gather_facts: yes
+  become: yes
+
+  roles:
+    - { role: repo,            tags: repo }
+    - { role: docker,          tags: docker }
+    - { role: docker-compose,  tags: docker-compose }
+    - { role: sngrep,          tags: sngrep }
+    - { role: tcpdump,         tags: tcpdump }

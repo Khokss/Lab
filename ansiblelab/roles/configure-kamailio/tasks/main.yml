@@ -1,0 +1,4 @@
+- name: Template Kamailio config
+  template:
+    src: kamailio.cfg.j2
+    dest: "{{ project_remote_path }}/{{ compose_subpath }}/kamailio/config/kamailio.cfg"

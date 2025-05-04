@@ -1,0 +1,94 @@
+---
+- name: Install and deploy Lab stack
+  hosts: remote
+  gather_facts: yes
+  become: yes
+
+  vars:
+    subscriber_list:
+      - 101
+      - 102
+      - 103
+    subscriber_password: "testpass"
+
+  pre_tasks:
+    - name: Ensure base directory exists on remote
+      file:
+        path: "{{ project_remote_path }}/{{ compose_subpath }}"
+        state: directory
+        mode: '0755'
+
+    - name: Ensure FreeSWITCH subdirs exist
+      file:
+        path: "{{ project_remote_path }}/{{ compose_subpath }}/freeswitch/conf/{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - ""
+        - sip_profiles
+        - autoload_configs
+
+    - name: Ensure Kamailio subdirs exist
+      file:
+        path: "{{ project_remote_path }}/{{ compose_subpath }}/kamailio/{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - config
+        - logs
+        - postgres
+
+    - name: Ensure Postgres data dir exists
+      file:
+        path: "{{ postgres_data_host_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Ensure RTPengine dir exists
+      file:
+        path: "{{ project_remote_path }}/{{ compose_subpath }}/rtpengine"
+        state: directory
+        mode: '0755'
+
+  roles:
+    - configure-psql
+    - configure-kamailio
+    - configure-freeswitch
+    - docker-compose-file-create-and-up
+
+  post_tasks:
+    - name: Wait for Postgres container to be running
+      shell: >
+        docker ps -q -f name=postgres
+      register: pg_up
+      until: pg_up.stdout != ""
+      retries: 5
+      delay: 2
+      args:
+        executable: /bin/bash
+
+    - name: Clear subscriber table
+      shell: >
+        docker exec postgres psql -U kamailio -d kamailio \
+          -c "TRUNCATE TABLE subscriber;"
+      args:
+        executable: /bin/bash
+
+    - name: Insert Kamailio subscribers into database via Postgres container
+      shell: |
+        for u in {{ subscriber_list | join(' ') }}; do
+          docker exec postgres psql -U kamailio -d kamailio \
+            -c "INSERT INTO subscriber (username, domain, password, ha1)
+          VALUES
+          {%- for u in subscriber_list %}
+            ('{{ u }}','{{ ansible_default_ipv4.address }}','{{ subscriber_password }}',
+             md5('{{ u }}:{{ ansible_default_ipv4.address }}:{{ subscriber_password }}')
+            ){% if not loop.last %},{% endif %}
+          {%- endfor %}
+          ON CONFLICT (username, domain) DO
+            UPDATE SET password = EXCLUDED.password,
+                       ha1      = EXCLUDED.ha1;"
+        done
+      args:
+        executable: /bin/bash
+

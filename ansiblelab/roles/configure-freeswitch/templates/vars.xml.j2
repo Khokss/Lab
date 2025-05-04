@@ -1,0 +1,37 @@
+<include>
+  <X-PRE-PROCESS cmd="set" data="local_ip_v4={{ freeswitch_local_ip_v4 }}"/>
+
+  <X-PRE-PROCESS cmd="set" data="external_rtp_ip={{ external_rtp_ip }}"/>
+  <X-PRE-PROCESS cmd="set" data="external_sip_ip={{ external_sip_ip }}"/>
+  <X-PRE-PROCESS cmd="set" data="external_sdp_ip={{ external_sdp_ip }}"/>
+
+  <X-PRE-PROCESS cmd="set" data="external_sip_port={{ external_sip_port }}"/>
+
+  <X-PRE-PROCESS cmd="set" data="global_codec_prefs={{ freeswitch_global_codec_prefs }}"/>
+  <X-PRE-PROCESS cmd="set" data="outbound_codec_prefs={{ freeswitch_outbound_codec_prefs }}"/>
+
+  <X-PRE-PROCESS cmd="set" data="internal_sip_port={{ internal_sip_port }}"/>
+
+  <X-PRE-PROCESS cmd="set" data="internal_auth_calls={{ internal_auth_calls }}"/>
+
+  <X-PRE-PROCESS cmd="set" data="rtp_start_port={{ freeswitch_rtp_start_port }}"/>
+  <X-PRE-PROCESS cmd="set" data="rtp_end_port={{ freeswitch_rtp_end_port }}"/>
+
+  <X-PRE-PROCESS cmd="set" data="dtmf_type={{ freeswitch_dtmf_type }}"/>
+
+  <X-PRE-PROCESS cmd="set" data="rtp_delay_start_port={{ rtpengine_internal_min }}"/>
+
+  <X-PRE-PROCESS cmd="set" data="log-level={{ freeswitch_log_level }}"/>
+
+  <!-- Internal SIP Profile -->
+  <X-PRE-PROCESS cmd="set" data="internal_auth_calls={{ internal_auth_calls }}"/>
+  <X-PRE-PROCESS cmd="set" data="internal_sip_port={{ internal_sip_port }}"/>
+  <X-PRE-PROCESS cmd="set" data="internal_tls_port={{ freeswitch_internal_tls_port }}"/>
+  <X-PRE-PROCESS cmd="set" data="internal_ssl_enable={{ internal_ssl_enable }}"/>
+
+  <!-- External SIP Profile -->
+  <X-PRE-PROCESS cmd="set" data="external_auth_calls={{ external_auth_calls }}"/>
+  <X-PRE-PROCESS cmd="set" data="external_sip_port={{ external_sip_port }}"/>
+  <X-PRE-PROCESS cmd="set" data="external_tls_port={{ external_tls_port }}"/>
+  <X-PRE-PROCESS cmd="set" data="external_ssl_enable={{ external_ssl_enable }}"/>
+</include>

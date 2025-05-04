@@ -1,0 +1,8 @@
+<configuration name="switch.conf">
+  <settings>
+    <param name="ext-rtp-ip" value="{{ ansible_default_ipv4.address }}"/>
+    <param name="rtp-ip" value="{{ freeswitch_local_ip_v4 }}"/>
+    <param name="rtp-start-port" value="{{ freeswitch_rtp_start_port }}"/>
+    <param name="rtp-end-port" value="{{ freeswitch_rtp_end_port }}"/>
+  </settings>
+</configuration>

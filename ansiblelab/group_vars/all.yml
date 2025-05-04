@@ -1,0 +1,83 @@
+# Пути
+project_local_path: "/root/stand"
+project_remote_path: "/opt/stand"
+compose_subpath: "Stand(rtpengine)"
+
+# Docker Compose images
+freeswitch_image: "deker1176/freeswitch:latest"
+postgres_image:   "postgres:13"
+kamailio_image:   "ghcr.io/kamailio/kamailio:5.8.3-bionic"
+rtpengine_image:  "fonoster/rtpengine:latest"
+
+# Postgres
+postgres_container_name:     "postgres"
+postgres_data_host_dir:      "{{ project_remote_path }}/{{ compose_subpath }}/postgres"
+postgres_data_container_dir: "/var/lib/postgresql/data"
+postgres_db_name:            "postgres"
+postgres_db_user:            "postgres"
+postgres_db_password:        "asdasd"
+postgres_port:               5432
+postgres_ip:                 "172.28.0.30"
+
+# FreeSWITCH core settings
+freeswitch_local_ip_v4:       "172.28.0.20"
+freeswitch_external_sip_port: 5080
+freeswitch_rtp_start_port:    16384
+freeswitch_rtp_end_port:      16590
+external_fs_port:             8021
+
+# FreeSWITCH сети (ACL)
+fs_local_network_cidr: "172.28.0.0/16"
+fs_local_deny_cidr:    "172.28.0.40/32"
+fs_nat_allow_cidr:     "172.28.0.40/32"
+
+# Добавляем внутренний SIP-порт и TLS-порт
+freeswitch_internal_sip_port: 5060
+freeswitch_internal_tls_port: 5061
+
+# FreeSWITCH codec/DTMF/log
+freeswitch_global_codec_prefs:  "PCMA,PCMU,telephone-event"
+freeswitch_outbound_codec_prefs: "PCMA,PCMU,telephone-event"
+freeswitch_dtmf_type:           "rfc2833"
+freeswitch_log_level:          "DEBUG"
+
+# Для Kamailio (rewrite)
+freeswitch_ip:       "{{ freeswitch_local_ip_v4 }}"
+freeswitch_sip_port: 8021
+
+# Kamailio
+kamailio_db_user:     "kamailio"
+kamailio_db_password: "asdasd"
+kamailio_db_host:     "172.28.0.30"
+kamailio_db_port:     5432
+kamailio_db_name:     "kamailio"
+kamailio_ip:          "172.28.0.40"
+kamailio_port:        5050
+subscriber_list: ['101','102','103']
+subscriber_password: "testpass"
+
+# RTPengine
+rtpengine_ip:          "172.28.0.50"
+rtpengine_public_ip:   "{{ ansible_default_ipv4.address }}"
+rtpengine_port_bind:   2223
+rtpengine_port_min:    10000
+rtpengine_port_max:    10060
+rtpengine_internal_min: 30000
+rtpengine_internal_max: 30060
+
+# Для vars.xml.j2: External/Internal SIP profiles
+external_rtp_ip:     "{{ ansible_default_ipv4.address }}"
+external_sip_ip:     "{{ ansible_default_ipv4.address }}"
+external_sdp_ip:     "{{ ansible_default_ipv4.address }}"
+external_sip_port:   "{{ freeswitch_external_sip_port }}"
+external_tls_port:   8022
+external_auth_calls: false
+external_ssl_enable: false
+
+internal_sip_port:   "{{ freeswitch_internal_sip_port }}"
+internal_tls_port:   "{{ freeswitch_internal_tls_port }}"
+internal_auth_calls: true
+internal_ssl_enable: false
+
+# DTMF delay port
+rtp_delay_start_port: "{{ rtpengine_internal_min }}"

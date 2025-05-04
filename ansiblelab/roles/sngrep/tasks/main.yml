@@ -1,0 +1,5 @@
+- name: Install sngrep
+  apt:
+    name: sngrep
+    state: present
+    update_cache: yes

@@ -1,0 +1,26 @@
+# roles/configure-psql/tasks/main.yml
+
+- name: Ensure remote Postgres directory exists
+  file:
+    path: "{{ project_remote_path }}/{{ compose_subpath }}/postgres"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Copy local Postgres directory to remote
+  synchronize:
+    src: "{{ project_local_path }}/{{ compose_subpath }}/postgres/"
+    dest: "{{ project_remote_path }}/{{ compose_subpath }}/postgres/"
+    archive: yes
+    delete: no
+  # requires rsync on both sides
+
+
+- name: Fix ownership for Postgres data (uid 999)
+  file:
+    path: "{{ postgres_data_host_dir }}"
+    recurse: yes
+    owner: 999
+    group: 999
+    mode: '0700'
