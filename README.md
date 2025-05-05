@@ -16,3 +16,4 @@ SIP UA1 <--> Kamailio <--> FreeSWITCH <--> SIP UA2
            +--> RTPengine (вариант 1: медиапоток через RTPengine)
            |
            +--> FreeSWITCH (вариант 2: медиапоток через FreeSWITCH напрямую)
+
