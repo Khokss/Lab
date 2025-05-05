@@ -1,0 +1,53 @@
+---
+- name: Install SIPp build dependencies
+  apt:
+    name:
+      - build-essential
+      - autoconf
+      - automake
+      - libtool
+      - libpcap-dev
+      - openssl
+      - libssl-dev
+      - libsctp-dev
+      - git
+      - cmake
+      - pkg-config
+      - libncurses5-dev
+      - libncursesw5-dev
+      - libtinfo-dev
+    state: present
+    update_cache: yes
+
+- name: Clone SIPp repository
+  git:
+    repo: https://github.com/SIPp/sipp.git
+    dest: /opt/stand/sipp
+    version: master
+    update: yes
+
+- name: Install CMake
+  apt:
+    name: cmake
+    state: present
+    update_cache: yes
+
+- name: Create build directory
+  file:
+    path: /opt/stand/sipp/build
+    state: directory
+
+- name: Run CMake
+  command: cmake .. -DUSE_PCAP=1 -DUSE_SCTP=1 -DUSE_OPENSSL=1
+  args:
+    chdir: /opt/stand/sipp/build
+
+- name: Build SIPp
+  command: make
+  args:
+    chdir: /opt/stand/sipp/build
+
+- name: Install SIPp
+  command: make install
+  args:
+    chdir: /opt/stand/sipp/build

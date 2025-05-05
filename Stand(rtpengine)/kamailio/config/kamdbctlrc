@@ -1,8 +1,0 @@
-DBENGINE=postgres \
-DBHOST=172.28.0.30 \
-DBNAME=kamailio \
-DBRWUSER=postgres \
-DBRWPW=asdasd \
-DBROUSER=postgres \
-DBROPW=asdasd \
-kamdbctl create
